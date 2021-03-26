@@ -1,0 +1,15 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+ config.vm.define "psql" do |master|
+    master.vm.box = "centos/7"
+    master.vm.hostname = "psql"
+    master.vm.network "private_network", ip: "192.168.33.10"
+    master.vm.provider "virtualbox" do |vb|
+      vb.memory = 1024
+      vb.cpus = 2
+      vb.name = "psql"
+    end
+  end
+end
