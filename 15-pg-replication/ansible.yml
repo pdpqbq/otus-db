@@ -1,0 +1,45 @@
+---
+- name: all
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - yum:
+        name:
+          - nano
+          - https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+        state: present
+    - yum:
+        name: postgresql12-server
+        state: present
+    - shell: |
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+        setenforce 0
+        /usr/pgsql-12/bin/postgresql-12-setup initdb
+        systemctl enable --now postgresql-12
+    - blockinfile:
+        path: /home/vagrant/.bash_profile
+        block: sudo -i
+    - blockinfile:
+        path: /var/lib/pgsql/12/data/postgresql.conf
+        block: listen_addresses = '*'
+    - shell: |
+        su - postgres -c "psql -U postgres -c \"drop user replicator\";"
+        su - postgres -c "psql -U postgres -c \"create user replicator with replication encrypted password '123456'\";"
+        systemctl restart postgresql-12
+
+- name: master
+  hosts: master
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - blockinfile:
+        path: /var/lib/pgsql/12/data/pg_hba.conf
+        block: |
+          host replication replicator all md5
+          host all replicator all md5
+    - shell: |
+        sed -i 's/#recovery_min_apply_delay = 0/recovery_min_apply_delay = 5min/' /var/lib/pgsql/12/data/postgresql.conf
+        systemctl restart postgresql-12

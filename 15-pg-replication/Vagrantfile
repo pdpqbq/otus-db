@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.define "master" do |master|
+    master.vm.hostname = "psq1"
+    master.vm.network "private_network", ip: "192.168.33.10"
+    master.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "psq1"
+    end
+  end
+  config.vm.define "stb1" do |stb1|
+    stb1.vm.hostname = "stb1"
+    stb1.vm.network "private_network", ip: "192.168.33.11"
+    stb1.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "psq2"
+    end
+  end
+  config.vm.define "stb2" do |stb2|
+    stb2.vm.hostname = "stb2"
+    stb2.vm.network "private_network", ip: "192.168.33.12"
+    stb2.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "psq3"
+    end
+  end
+  config.vm.provision "ansible", playbook: "ansible.yml", verbose: "v"
+end
