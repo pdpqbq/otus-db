@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<-SCRIPT
+echo sudo -i >> /home/vagrant/.bash_profile
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+setenforce 0
+yum -y install https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+yum -y install mysql-community-server
+yum -y install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+yum -y install percona-xtrabackup-80
+systemctl enable --now mysqld
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.define "srv1" do |srv|
+    srv.vm.hostname = "srv1"
+    srv.vm.network "private_network", ip: "192.168.33.10"
+    srv.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "srv1"
+    end
+  end
+#  config.vm.define "srv2" do |srv|
+#    srv.vm.hostname = "srv2"
+#    srv.vm.network "private_network", ip: "192.168.33.11"
+#    srv.vm.provider "virtualbox" do |vb|
+#      vb.memory = 512
+#      vb.cpus = 1
+#      vb.name = "srv2"
+#    end
+#  end
+  config.vm.provision "shell", inline: $script
+  config.vm.provision "file", source: "otus_db-4560-3521f1.dmp", destination: "/tmp/otus_db-4560-3521f1.dmp"
+  config.vm.provision "file", source: "backup.xbstream.gz-4560-0d8b3a.des3", destination: "/tmp/backup.xbstream.gz-4560-0d8b3a.des3"
+end
