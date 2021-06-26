@@ -1,0 +1,43 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<-SCRIPT
+echo sudo -i >> /home/vagrant/.bash_profile
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+setenforce 0
+yum -y install https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+yum -y install mysql-community-server
+yum -y install git
+systemctl enable --now mysqld
+mkdir /tmp/otus
+cd /tmp/otus
+git clone https://github.com/datacharmer/test_db
+cd test_db
+mysql -uroot -p`grep 'temporary password' /var/log/mysqld.log | awk '{print $13}'` -e"ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass4\!';" --connect-expired-password
+mysql -uroot -p'MyNewPass4!' < employees.sql
+mysql -uroot -p'MyNewPass4!' -e"CREATE USER 'otus'@'%' IDENTIFIED BY 'MyNewPass4\!';"
+mysql -uroot -p'MyNewPass4!' -e"GRANT ALL PRIVILEGES ON employees.* TO 'otus'@'%';"
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.define "srv1" do |srv|
+    srv.vm.hostname = "srv1"
+    srv.vm.network "private_network", ip: "192.168.33.10"
+    srv.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "srv1"
+    end
+  end
+#  config.vm.define "srv2" do |srv|
+#    srv.vm.hostname = "srv2"
+#    srv.vm.network "private_network", ip: "192.168.33.11"
+#    srv.vm.provider "virtualbox" do |vb|
+#      vb.memory = 512
+#      vb.cpus = 1
+#      vb.name = "srv2"
+#    end
+#  end
+  config.vm.provision "shell", inline: $script
+end
