@@ -1,0 +1,49 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<-SCRIPT
+echo sudo -i >> /home/vagrant/.bash_profile
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+setenforce 0
+yum -y install https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+yum -y install mysql-community-server mysql-shell
+systemctl enable --now mysqld
+mysql -uroot -p`grep 'temporary password' /var/log/mysqld.log | awk '{print $13}'` -e"ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass4\!';" --connect-expired-password
+cat > /etc/hosts << xxx
+192.168.33.10 srv1
+192.168.33.11 srv2
+192.168.33.12 srv3
+xxx
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.define "srv1" do |srv|
+    srv.vm.hostname = "srv1"
+    srv.vm.network "private_network", ip: "192.168.33.10"
+    srv.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "srv1"
+    end
+  end
+  config.vm.define "srv2" do |srv|
+    srv.vm.hostname = "srv2"
+    srv.vm.network "private_network", ip: "192.168.33.11"
+    srv.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "srv2"
+    end
+  end
+  config.vm.define "srv3" do |srv|
+    srv.vm.hostname = "srv3"
+    srv.vm.network "private_network", ip: "192.168.33.12"
+    srv.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+      vb.name = "srv3"
+    end
+  end
+  config.vm.provision "shell", inline: $script
+end
