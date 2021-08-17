@@ -1,0 +1,36 @@
+$script = <<-SCRIPT
+echo sudo -i >> /home/vagrant/.bash_profile
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+setenforce 0
+yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+yum update -y
+yum install -y yum-utils
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+yum install -y docker-ce docker-ce-cli containerd.io
+#sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose
+#sudo chmod +x /usr/bin/docker-compose
+systemctl enable --now docker
+#docker pull portainer/portainer-ce
+docker pull cassandra:3
+SCRIPT
+
+Vagrant.configure("2") do |config|
+ config.vm.define "cascluster1" do |machine|
+    machine.vm.box = "centos/7"
+    machine.vm.hostname = "cascluster1"
+    machine.vm.network "private_network", ip: "192.168.33.10"
+    machine.vm.provider "virtualbox" do |vb|
+      vb.memory = 20480
+      vb.cpus = 4
+      vb.name = "cascluster1"
+    end
+  config.vm.provision "shell", inline: $script
+  end
+end
